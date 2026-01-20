@@ -43,7 +43,7 @@ runs:
     - name: Setup Conftest
       shell: bash
       run: |
-        CONFTEST_VERSION="0.46.2"
+        CONFTEST_VERSION="0.66.0"
         DOWNLOAD_URL="https://github.com/open-policy-agent/conftest/releases/download/v${CONFTEST_VERSION}/conftest_${CONFTEST_VERSION}_Linux_x86_64.tar.gz"
         echo "Downloading conftest from: $DOWNLOAD_URL"
         curl -fsSL -o conftest.tar.gz "$DOWNLOAD_URL"
