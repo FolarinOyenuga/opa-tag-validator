@@ -20,7 +20,7 @@ inputs:
       owner
       is-production
       service-area
-      environment-name
+      environment
   soft_fail:
     description: 'Return exit code 0 even if violations found'
     required: false
