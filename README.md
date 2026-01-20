@@ -86,10 +86,10 @@ If not specified, the following MoJ tags are required:
 
 ## Features
 
-- **Policy-as-code** - Transparent, auditable Rego policies
-- **tags_all support** - Works with AWS provider v3.38.0+ default_tags
-- **Configurable** - Specify your own required tags
-- **PR comments** - Easy integration with GitHub PR workflows
+- **Policy-as-code:** Transparent, auditable Rego policies
+- **tags_all support:** Works with AWS provider v3.38.0+ default_tags
+- **Configurable:** Specify your own required tags
+- **PR comments:** Easy integration with GitHub PR workflows
 
 ## License
 
