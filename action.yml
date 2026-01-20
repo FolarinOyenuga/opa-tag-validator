@@ -1,0 +1,93 @@
+name: 'OPA Tag Validator'
+description: 'Validates Terraform resources have required tags using OPA/Conftest'
+author: 'Ministry of Justice'
+
+branding:
+  icon: 'shield'
+  color: 'blue'
+
+inputs:
+  terraform_directory:
+    description: 'Path to Terraform files'
+    required: true
+    default: '.'
+  required_tags:
+    description: 'List of required tag keys (newline or comma-separated)'
+    required: true
+    default: |
+      business-unit
+      application
+      owner
+      is-production
+      service-area
+      environment-name
+  soft_fail:
+    description: 'Return exit code 0 even if violations found'
+    required: false
+    default: 'false'
+
+outputs:
+  violations_count:
+    description: 'Number of tag violations found'
+    value: ${{ steps.parse.outputs.violations_count }}
+  violations_summary:
+    description: 'Markdown summary of violations for PR comments'
+    value: ${{ steps.parse.outputs.violations_summary }}
+  passed:
+    description: 'Whether validation passed (true/false)'
+    value: ${{ steps.parse.outputs.passed }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Conftest
+      uses: open-policy-agent/setup-conftest@v1
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Generate policy
+      shell: bash
+      env:
+        REQUIRED_TAGS: ${{ inputs.required_tags }}
+        ACTION_PATH: ${{ github.action_path }}
+      run: |
+        python3 ${{ github.action_path }}/scripts/generate_policy.py
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_wrapper: false
+
+    - name: Generate Terraform plan
+      id: plan
+      shell: bash
+      working-directory: ${{ inputs.terraform_directory }}
+      run: |
+        terraform init -backend=false
+        terraform plan -out=tfplan.binary
+        terraform show -json tfplan.binary > tfplan.json
+
+    - name: Run Conftest
+      id: conftest
+      shell: bash
+      working-directory: ${{ inputs.terraform_directory }}
+      run: |
+        set +e
+        conftest test tfplan.json \
+          --policy ${{ github.action_path }}/policies \
+          --output json > conftest_results.json 2>&1
+        CONFTEST_EXIT=$?
+        echo "exit_code=$CONFTEST_EXIT" >> $GITHUB_OUTPUT
+        set -e
+
+    - name: Parse results
+      id: parse
+      shell: bash
+      env:
+        TERRAFORM_DIR: ${{ inputs.terraform_directory }}
+        SOFT_FAIL: ${{ inputs.soft_fail }}
+      run: |
+        python3 ${{ github.action_path }}/scripts/parse_results.py
