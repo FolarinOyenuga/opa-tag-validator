@@ -13,15 +13,17 @@ def parse_required_tags(tags_input: str) -> list:
 
 
 def generate_rego_policy(tags: list) -> str:
-    """Generate Rego policy for required tags."""
+    """Generate Rego policy for required tags (OPA 1.0+ compatible syntax)."""
     tags_list = ', '.join(f'"{tag}"' for tag in tags)
     
     return f'''package main
 
+import rego.v1
+
 required_tags := [{tags_list}]
 
 # Deny resources missing required tags
-deny[msg] {{
+deny contains msg if {{
     resource := input.resource_changes[_]
     
     # Skip deleted resources
@@ -39,7 +41,7 @@ deny[msg] {{
 }}
 
 # Deny resources with empty tag values
-deny[msg] {{
+deny contains msg if {{
     resource := input.resource_changes[_]
     
     resource.change.actions[_] != "delete"
@@ -54,21 +56,18 @@ deny[msg] {{
 }}
 
 # Helper to get tags (prefers tags_all over tags)
-get_tags(after) = tags {{
+get_tags(after) := after.tags_all if {{
     after.tags_all
-    tags := after.tags_all
 }}
 
-get_tags(after) = tags {{
+get_tags(after) := after.tags if {{
     not after.tags_all
     after.tags
-    tags := after.tags
 }}
 
-get_tags(after) = tags {{
+get_tags(after) := {{}} if {{
     not after.tags_all
     not after.tags
-    tags := {{}}
 }}
 '''
 
