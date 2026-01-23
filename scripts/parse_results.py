@@ -65,9 +65,29 @@ def main():
         summary_lines.append("✅ **All resources have required tags**")
     else:
         summary_lines.append(f"❌ **Found {violations_count} tag violation(s)**\n")
+        
+        # Group violations by resource for cleaner output
+        resource_violations = {}
         for v in violations:
-            prefix = "⚠️" if v.get('type') == 'warning' else "❌"
-            summary_lines.append(f"- {prefix} {v['message']}")
+            msg = v['message']
+            # Parse resource name from message: "Resource 'xxx' is missing..."
+            if "Resource '" in msg:
+                parts = msg.split("'")
+                if len(parts) >= 2:
+                    resource = parts[1]
+                    tag_info = msg.split("tag: ")[-1] if "tag: " in msg else msg
+                    if resource not in resource_violations:
+                        resource_violations[resource] = []
+                    resource_violations[resource].append(tag_info)
+                else:
+                    summary_lines.append(f"- ❌ {msg}")
+            else:
+                summary_lines.append(f"- ❌ {msg}")
+        
+        # Output grouped by resource
+        for resource, tags in resource_violations.items():
+            summary_lines.append(f"- **{resource}**")
+            summary_lines.append(f"  - Missing/empty tags: `{', '.join(tags)}`")
     
     summary = '\n'.join(summary_lines)
     
