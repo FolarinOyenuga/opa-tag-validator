@@ -29,8 +29,10 @@ deny contains msg if {{
     # Skip deleted resources
     resource.change.actions[_] != "delete"
     
-    # Get tags (prefer tags_all for AWS provider v3.38.0+)
+    # Only check resources that support tagging (have tags or tags_all in schema)
     after := resource.change.after
+    supports_tags(after)
+    
     tags := get_tags(after)
     
     # Check for missing tags
@@ -47,12 +49,23 @@ deny contains msg if {{
     resource.change.actions[_] != "delete"
     
     after := resource.change.after
+    supports_tags(after)
+    
     tags := get_tags(after)
     
     tag := required_tags[_]
     tags[tag] == ""
     
     msg := sprintf("Resource '%s' has empty value for required tag: %s", [resource.address, tag])
+}}
+
+# Check if resource supports tagging
+supports_tags(after) if {{
+    after.tags_all
+}}
+
+supports_tags(after) if {{
+    after.tags
 }}
 
 # Helper to get tags (prefers tags_all over tags)
